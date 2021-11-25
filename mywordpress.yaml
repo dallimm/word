@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress-blog
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: wordpress-blog
+  template:
+    metadata:
+      labels:
+        app: wordpress-blog
+    spec:
+      containers:
+      - name: wordpress-blog
+        image: phl730/myblog:1.1.1
+        ports:
+        - containerPort: 80
+        env:
+        - name: DATABASE_HOST
+          value: "hlpark-db.mysql.database.azure.com" #Update here
+        - name: DATABASE_USERNAME
+          value: "root1@hlpark-db"  #Update here
+        - name: DATABASE_PASSWORD
+          value: "It123412341!"  #Update here
+        - name: DATABASE_NAME
+          value: "wordpress"
+        volumeMounts:
+          - mountPath: "/mnt/azure"
+            name: volume
+      volumes:
+      - name: volume
+        persistentVolumeClaim:
+          claimName: my-azurefile
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: "app"
+                    operator: In
+                    values:
+                    - wordpress-blog
+              topologyKey: "kubernetes.io/hostname"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-svc
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+  selector:
+    app: wordpress-blog
